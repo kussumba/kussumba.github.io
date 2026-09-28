@@ -1,6 +1,9 @@
 """Publica a KUSSUMBA no GitHub Pages, no ramo gh-pages.
 
-Uso:  python publicar.py ["linha extra para a mensagem do registo" ...]
+Uso:  python publicar.py [--remoto NOME] ["linha extra para a mensagem do registo" ...]
+
+--remoto  repositório onde publicar: "origin" (o endereço oficial, por omissão)
+          ou "antigo" (o endereço anterior, que só encaminha para o oficial).
 
 Publica só os ficheiros da aplicação, tirados do último registo (commit) do ramo main.
 Os testes, as ferramentas e a documentação não são publicados (auditoria SEC-010).
@@ -9,6 +12,7 @@ Recusa publicar se:
 - houver alterações por registar (o que se publica tem de estar guardado no main);
 - a VERSAO do sw.js for igual à da última publicação (os telefones não receberiam a versão nova).
 """
+import argparse
 import os
 import pathlib
 import re
@@ -19,7 +23,10 @@ import tempfile
 PASTA = pathlib.Path(__file__).resolve().parent
 PUBLICAR = ("index.html", "manifest.webmanifest", "sw.js", "css/", "fontes/", "icones/", "js/")
 RAMO = "gh-pages"
-ENDERECO = "https://ladislaulucala-sys.github.io/kussumba/"
+ENDERECOS = {
+    "origin": "https://kussumba.github.io/",
+    "antigo": "https://ladislaulucala-sys.github.io/kussumba/",
+}
 
 
 def git(*argumentos, entrada=None, ambiente=None, obrigatorio=True):
@@ -37,14 +44,20 @@ def versao_em(referencia):
 
 
 def main():
+    leitor = argparse.ArgumentParser(description="Publica a KUSSUMBA no GitHub Pages.")
+    leitor.add_argument("--remoto", default="origin", choices=sorted(ENDERECOS))
+    leitor.add_argument("notas", nargs="*", help="linhas extra para a mensagem do registo")
+    opcoes = leitor.parse_args()
+    remoto = opcoes.remoto
+
     if git("status", "--porcelain"):
         sys.exit("Há alterações por registar. Faz primeiro o registo (commit) e o envio do ramo main.")
-    git("fetch", "origin")
-    if git("rev-parse", "main") != git("rev-parse", "origin/main", obrigatorio=False):
-        sys.exit("O ramo main ainda não foi enviado para o GitHub. Faz primeiro: git push origin main")
+    git("fetch", remoto)
+    if git("rev-parse", "main") != git("rev-parse", f"{remoto}/main", obrigatorio=False):
+        sys.exit(f"O ramo main ainda não foi enviado para {remoto}. Faz primeiro: git push {remoto} main")
 
     nova = versao_em("main")
-    publicada = versao_em(f"origin/{RAMO}")
+    publicada = versao_em(f"{remoto}/{RAMO}")
     if not nova:
         sys.exit("Não encontrei a VERSAO no sw.js.")
     if nova == publicada:
@@ -64,13 +77,14 @@ def main():
         arvore = git("write-tree", ambiente=ambiente)
 
     origem = git("rev-parse", "--short", "main")
-    mensagem = "\n\n".join([f"Publicar {nova} (main {origem})", *sys.argv[1:]])
-    anterior = git("rev-parse", "--verify", "--quiet", f"origin/{RAMO}", obrigatorio=False)
+    mensagem = "\n\n".join([f"Publicar {nova} (main {origem})", *opcoes.notas])
+    anterior = git("rev-parse", "--verify", "--quiet", f"{remoto}/{RAMO}", obrigatorio=False)
     pais = ["-p", anterior] if anterior else []
     registo = git("commit-tree", arvore, *pais, entrada=mensagem)
-    git("update-ref", f"refs/heads/{RAMO}", registo)
-    git("push", "origin", RAMO)
-    print(f"Publicada a versão {nova}. Daqui a um ou dois minutos estará em {ENDERECO}")
+    # Envia o registo directamente para o gh-pages do repositório escolhido; o ramo local não é usado.
+    git("push", remoto, f"{registo}:refs/heads/{RAMO}")
+    git("fetch", remoto)
+    print(f"Publicada a versão {nova}. Daqui a um ou dois minutos estará em {ENDERECOS[remoto]}")
 
 
 if __name__ == "__main__":

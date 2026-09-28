@@ -4,7 +4,9 @@
 
 Aplicação para gerir as compras da casa: plafond do mês, lista, registo do que se pagou, histórico de preços e fecho do mês. Funciona no telemóvel como aplicação instalada e continua a funcionar sem internet.
 
-Endereço: <https://ladislaulucala-sys.github.io/kussumba/>
+Endereço: <https://kussumba.github.io/>
+
+O endereço anterior, <https://ladislaulucala-sys.github.io/kussumba/>, já não aceita utilizadores novos. Quem lá tem dados vê um aviso com os passos para os levar para o endereço novo: guardar a cópia de segurança, abrir o endereço novo e repô-la nas boas-vindas.
 
 ## Experimentar no computador
 
@@ -36,7 +38,7 @@ Os dados ficam só no telefone, no armazenamento do Chrome. Não há conta nem s
 
 ## Publicar uma versão nova
 
-A aplicação é publicada no GitHub Pages a partir do ramo `gh-pages`, que só contém os ficheiros da aplicação. O ramo `main` guarda o projecto inteiro, com testes e documentação.
+A aplicação é publicada no GitHub Pages da organização `kussumba`, no repositório `kussumba/kussumba.github.io`, a partir do ramo `gh-pages`, que só contém os ficheiros da aplicação. O ramo `main` guarda o projecto inteiro, com testes e documentação. No computador, esse repositório chama-se `origin`; o repositório do endereço anterior chama-se `antigo`.
 
 1. Em `sw.js`, muda o valor de `VERSAO`, por exemplo de `kussumba-2026-09-28-6` para `kussumba-2026-10-02-1`. Sem esta mudança, os telefones continuam a usar a versão antiga guardada.
 2. Se acrescentaste ficheiros, junta-os também à lista `FICHEIROS` do mesmo `sw.js`.
@@ -54,6 +56,12 @@ A aplicação é publicada no GitHub Pages a partir do ramo `gh-pages`, que só 
    python publicar.py
    ```
 
+   Enquanto o endereço anterior estiver activo, publica lá também (primeiro `git push antigo main`), para o aviso de mudança se manter actualizado:
+
+   ```powershell
+   python publicar.py --remoto antigo
+   ```
+
 O `publicar.py` recusa publicar se houver alterações por registar, se o `main` não estiver enviado ou se a `VERSAO` for igual à publicada. Os telefones descarregam a versão nova em segundo plano e recarregam uma vez sozinhos. Os dados mantêm-se.
 
 ## Segurança
@@ -62,7 +70,7 @@ O `publicar.py` recusa publicar se houver alterações por registar, se o `main`
 - Os ficheiros de cópia de segurança são tratados como não fiáveis: tamanho limitado, cada campo validado, campos desconhecidos descartados.
 - Os ramos `main` e `gh-pages` não aceitam reescrita do histórico nem eliminação.
 - Quem controla a conta GitHub controla o código que chega aos telefones: a conta deve ter a verificação em dois passos activa.
-- Todos os projectos publicados em `ladislaulucala-sys.github.io` partilham a mesma origem e podem ler os dados uns dos outros no navegador. Não publiques outros projectos nesta conta enquanto a KUSSUMBA estiver aqui.
+- A KUSSUMBA tem um domínio só dela (`kussumba.github.io`). Tudo o que for publicado com GitHub Pages na organização `kussumba` partilha esse domínio e poderia ler os dados da aplicação no navegador: não publiques lá outros projectos.
 
 ## Testes
 

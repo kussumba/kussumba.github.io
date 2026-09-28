@@ -959,3 +959,33 @@
   text-align: center;
   cursor: pointer;
 }
+
+/* ---------- Mudança de endereço ---------- */
+
+.mudanca {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+  border-color: var(--verde);
+}
+
+.mudanca h2 {
+  font-size: var(--t-destaque);
+  font-weight: 700;
+}
+
+.mudanca__passos {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 22px;
+}
+
+.mudanca__accoes {
+  display: grid;
+  gap: 8px;
+}
+
+.entrada__mudanca {
+  margin-top: auto;
+}

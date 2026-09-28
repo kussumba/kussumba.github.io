@@ -267,7 +267,33 @@ def main():
         expect(pagina.locator(".saldo__valor")).to_have_text(kz("148 000 Kz"))
         contexto.close()
 
-        # 11. Navegador que não deixa guardar dados
+        # 11. Endereço antigo: encaminha para o novo e ajuda a levar os dados (auditoria SEC-001)
+        antigo = "https://ladislaulucala-sys.github.io/kussumba/"
+        contexto = navegador.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True,
+                                         locale="pt-AO", service_workers="block", accept_downloads=True)
+        contexto.clock.set_fixed_time(datetime.datetime(2026, 9, 29, 9, 0))
+        contexto.route(antigo + "**", lambda rota: rota.fulfill(response=rota.fetch(url=rota.request.url.replace(antigo, base))))
+        pagina = contexto.new_page()
+        pagina.on("pageerror", lambda e: erros_consola.append(str(e)))
+        pagina.goto(antigo)
+        expect(pagina.locator("h1")).to_have_text("A KUSSUMBA mudou de endereço")
+        verificar(pagina.locator(".entrada__mudanca").get_attribute("href") == "https://kussumba.github.io/",
+                  "no endereço antigo, quem chega pela primeira vez é encaminhado para kussumba.github.io")
+        verificar(pagina.locator("#plafond").count() == 0, "no endereço antigo já não se criam utilizadores novos")
+        pagina.evaluate("""async () => {
+            const Meses = await import('./js/servicos/meses.js');
+            await Meses.configurarInicio({ plafond: 200000 });
+        }""")
+        pagina.goto(antigo + "#/mes")
+        pagina.reload()
+        expect(pagina.locator(".mudanca")).to_contain_text("O novo endereço é kussumba.github.io")
+        pagina.screenshot(path=CAPTURAS / "24-endereco-antigo.png")
+        with pagina.expect_download() as transferencia:
+            pagina.get_by_role("button", name="Guardar cópia").click()
+        verificar(transferencia.value.suggested_filename.startswith("kussumba-copia-"), "o aviso de mudança guarda a cópia de segurança")
+        contexto.close()
+
+        # 12. Navegador que não deixa guardar dados
         contexto, pagina = novo_contexto(navegador, datetime.datetime(2026, 9, 10, 9, 0), sem_armazenamento=True)
         pagina.goto(base)
         expect(pagina.locator("h1")).to_have_text("Não é possível guardar dados")

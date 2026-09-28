@@ -3,6 +3,7 @@
 import { html, montar } from '../html.js';
 import { campoKz, ligarCamposKz, lerCampoKz, mostrarErroCampo, executar, mostrarAviso } from '../componentes.js';
 import { reporDeFicheiro } from '../copia.js';
+import { ENDERECO_OFICIAL, NOME_DO_ENDERECO, estaNoEnderecoAntigo } from '../endereco.js';
 import { configurarInicio } from '../../servicos/meses.js';
 import { ErroKussumba } from '../../servicos/comum.js';
 import { pedirArmazenamentoPersistente } from '../../dados/db.js';
@@ -10,6 +11,19 @@ import { pedirArmazenamentoPersistente } from '../../dados/db.js';
 export const titulo = 'Bem-vinda';
 
 export async function desenhar(raiz, { navegar }) {
+  if (estaNoEnderecoAntigo()) {
+    montar(raiz, html`
+      <section class="entrada">
+        <div class="entrada__marca">
+          <img src="icones/favicon.svg" alt="" width="64" height="64">
+          <p class="entrada__nome">KUSSUMBA</p>
+        </div>
+        <h1 tabindex="-1">A KUSSUMBA mudou de endereço</h1>
+        <p class="entrada__slogan">Agora está em ${NOME_DO_ENDERECO}. Abre esse endereço no Chrome para instalar a aplicação.</p>
+        <a class="botao botao--primario entrada__mudanca" href="${ENDERECO_OFICIAL}">Abrir ${NOME_DO_ENDERECO}</a>
+      </section>`);
+    return;
+  }
   montar(raiz, html`
     <section class="entrada">
       <div class="entrada__marca">

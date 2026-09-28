@@ -2,7 +2,9 @@
 
 import { html, montar } from '../html.js';
 import { icone } from '../icones.js';
-import { alerta, barraProgresso, pedirKz, mostrarAviso, confirmar } from '../componentes.js';
+import { alerta, barraProgresso, pedirKz, mostrarAviso, confirmar, executar } from '../componentes.js';
+import { guardarCopia } from '../copia.js';
+import { ENDERECO_OFICIAL, NOME_DO_ENDERECO, estaNoEnderecoAntigo } from '../endereco.js';
 import { formatarKz, formatarNumero } from '../../nucleo/formatos.js';
 import { formatarDataCurta, formatarDataLonga } from '../../nucleo/datas.js';
 import { painelMes } from '../../servicos/relatorio.js';
@@ -13,6 +15,23 @@ import { pareceEngano } from '../../nucleo/alertas.js';
 export const titulo = 'Mês';
 export const separador = 'mes';
 export const precisaMesAberto = true;
+
+/** No endereço antigo: como levar os dados para o endereço novo. */
+function avisoDeMudanca() {
+  return html`<section class="cartao mudanca" aria-labelledby="mudanca-titulo">
+    <h2 id="mudanca-titulo">A KUSSUMBA mudou de endereço</h2>
+    <p>O novo endereço é <strong>${NOME_DO_ENDERECO}</strong>. Para levares os teus dados:</p>
+    <ol class="mudanca__passos">
+      <li>Guarda aqui uma cópia de segurança.</li>
+      <li>Abre o novo endereço no Chrome e instala a aplicação.</li>
+      <li>Nas boas-vindas, escolhe Repor uma cópia e indica o ficheiro guardado.</li>
+    </ol>
+    <div class="mudanca__accoes">
+      <button type="button" class="botao botao--primario" data-accao="copia-mudanca">Guardar cópia</button>
+      <a class="botao botao--secundario" href="${ENDERECO_OFICIAL}">Abrir o novo endereço</a>
+    </div>
+  </section>`;
+}
 
 function plural(n, singular, pluralTexto) {
   return `${formatarNumero(n)} ${n === 1 ? singular : pluralTexto}`;
@@ -139,6 +158,7 @@ export async function desenhar(raiz, { contexto, redesenhar }) {
       <p class="cabecalho__sobre">Mês em curso</p>
       <h1 tabindex="-1">${painel.rotulo}</h1>
     </header>
+    ${estaNoEnderecoAntigo() ? avisoDeMudanca() : ''}
     ${cartaoSaldo(painel)}
     ${primeiroAlerta ? alerta(primeiroAlerta) : ''}
     ${botaoCompras(painel)}
@@ -151,6 +171,13 @@ export async function desenhar(raiz, { contexto, redesenhar }) {
         ? `Última cópia: ${formatarDataLonga(contexto.utilizador.ultimaCopiaEm.slice(0, 10))}.`
         : 'Os teus dados só existem neste telefone. Guarda uma cópia de vez em quando.'}</span>
     </p>`);
+
+  raiz.querySelector('[data-accao="copia-mudanca"]')?.addEventListener('click', (e) => {
+    executar(e.currentTarget, async () => {
+      await guardarCopia();
+      mostrarAviso('Cópia guardada na pasta de transferências. Agora abre o novo endereço.');
+    });
+  });
 
   raiz.querySelector('[data-accao="plafond"]').addEventListener('click', async () => {
     const novo = await pedirKz({

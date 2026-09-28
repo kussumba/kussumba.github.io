@@ -4,7 +4,7 @@
 // Ao publicar uma versão nova, mudar VERSAO. Os telefones descarregam os ficheiros novos
 // em segundo plano e passam a usá-los na abertura seguinte.
 
-const VERSAO = 'kussumba-2026-09-28-6';
+const VERSAO = 'kussumba-2026-09-29-1';
 
 const FICHEIROS = [
   './',
@@ -39,6 +39,7 @@ const FICHEIROS = [
   './js/servicos/relatorio.js',
   './js/ui/componentes.js',
   './js/ui/copia.js',
+  './js/ui/endereco.js',
   './js/ui/html.js',
   './js/ui/icones.js',
   './js/ui/router.js',
