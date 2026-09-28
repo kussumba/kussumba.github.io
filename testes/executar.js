@@ -3,6 +3,7 @@ import { correr } from './mini-teste.js';
 import './nucleo.teste.js';
 import './dados.teste.js';
 import './servicos.teste.js';
+import './copia.teste.js';
 
 const resumo = await correr(document.getElementById('resultados'));
 document.getElementById('resumo').textContent =

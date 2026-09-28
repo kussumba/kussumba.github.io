@@ -69,6 +69,30 @@ export function alertasOrcamento({ plafond, gasto, percentagem, diasRestantes, p
   return alertas;
 }
 
+/**
+ * Um valor mais de 5 vezes acima ou abaixo da referência parece engano de digitação
+ * (um "000" a mais, uma vírgula esquecida). A aplicação pede confirmação antes de gravar (SEC-007).
+ */
+export const FACTOR_ESTRANHO = 5;
+
+export function pareceEngano(valor, referencia, factor = FACTOR_ESTRANHO) {
+  const valido = (n) => typeof n === 'number' && Number.isFinite(n) && n > 0;
+  if (!valido(valor) || !valido(referencia)) return false;
+  return valor > referencia * factor || valor < referencia / factor;
+}
+
+/**
+ * Motivo para confirmar um preço pago antes de o gravar, ou null se parecer normal.
+ * Compara com o plafond do mês, com a última compra (por unidade) e com o previsto.
+ */
+export function motivoPrecoEstranho({ precoReal, plafond = null, precoUnitarioBase = null, anteriorUnitarioBase = null, previsto = null }) {
+  if (!precoReal) return null;
+  if (plafond && precoReal > plafond) return 'é maior do que o plafond do mês inteiro';
+  if (pareceEngano(precoUnitarioBase, anteriorUnitarioBase)) return 'está muito longe do preço da última compra';
+  if (pareceEngano(precoReal, previsto)) return 'está muito longe do previsto';
+  return null;
+}
+
 /** Lista por comprar comparada com o saldo. Devolve null quando não há nada a dizer. */
 export function alertaLista({ pendente, saldo, artigosPendentes }) {
   if (!artigosPendentes || pendente <= 0) return null;

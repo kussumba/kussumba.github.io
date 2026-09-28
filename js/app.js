@@ -2,6 +2,7 @@
 
 import { iniciarNavegacao } from './ui/router.js';
 import { tratarErro } from './ui/componentes.js';
+import { enderecoDoServiceWorker } from './ui/html.js';
 import * as boasVindas from './ui/ecras/boas-vindas.js';
 import * as primeiraLista from './ui/ecras/primeira-lista.js';
 import * as mes from './ui/ecras/mes.js';
@@ -11,6 +12,7 @@ import * as comprar from './ui/ecras/comprar.js';
 import * as compra from './ui/ecras/compra.js';
 import * as relatorio from './ui/ecras/relatorio.js';
 import * as novoMes from './ui/ecras/novo-mes.js';
+import * as dados from './ui/ecras/dados.js';
 
 const telas = {
   'boas-vindas': boasVindas,
@@ -22,6 +24,7 @@ const telas = {
   compra,
   relatorio,
   'novo-mes': novoMes,
+  dados,
 };
 
 window.addEventListener('unhandledrejection', (evento) => tratarErro(evento.reason));
@@ -40,5 +43,5 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (jaHaviaVersao) location.reload();
   });
-  navigator.serviceWorker.register('./sw.js').catch((erro) => console.warn('Sem funcionamento offline:', erro));
+  navigator.serviceWorker.register(enderecoDoServiceWorker()).catch((erro) => console.warn('Sem funcionamento offline:', erro));
 }

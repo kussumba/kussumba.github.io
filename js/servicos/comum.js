@@ -8,7 +8,7 @@ export class ErroKussumba extends Error {
   }
 }
 
-const MAXIMO_KZ = 100_000_000_000;
+export const MAXIMO_KZ = 100_000_000_000;
 
 /** Valor em Kz: inteiro, maior do que zero. */
 export function validarKz(valor, mensagem) {

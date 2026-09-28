@@ -265,6 +265,21 @@ teste('alertas: lista acima do saldo', () => {
   igual(A.alertaLista({ pendente: 0, saldo: 67600, artigosPendentes: 0 }), null);
 });
 
+teste('alertas: valores que parecem engano de digitação (auditoria SEC-007)', () => {
+  igual(A.pareceEngano(1280, 1200), false);
+  igual(A.pareceEngano(12800000, 1280), true, 'três zeros a mais');
+  igual(A.pareceEngano(128, 1280), true, 'um zero a menos: um décimo do preço');
+  igual(A.pareceEngano(200, 1280), true);
+  igual(A.pareceEngano(300, 1280), false);
+  igual(A.pareceEngano(100, null), false, 'sem referência não há comparação');
+  igual(A.pareceEngano(0, 100), false);
+  igual(A.motivoPrecoEstranho({ precoReal: 300000, plafond: 250000 }), 'é maior do que o plafond do mês inteiro');
+  igual(A.motivoPrecoEstranho({ precoReal: 320000, plafond: 500000, precoUnitarioBase: 12800, anteriorUnitarioBase: 1200 }), 'está muito longe do preço da última compra');
+  igual(A.motivoPrecoEstranho({ precoReal: 95000, plafond: 500000, previsto: 9500 }), 'está muito longe do previsto');
+  igual(A.motivoPrecoEstranho({ precoReal: 10000, plafond: 250000, precoUnitarioBase: 2000, anteriorUnitarioBase: 1900, previsto: 9500 }), null);
+  igual(A.motivoPrecoEstranho({ precoReal: null, plafond: 250000 }), null);
+});
+
 teste('alertas: preços e fim de compra', () => {
   igual(
     A.alertaPreco({ nomeProduto: 'Óleo alimentar', genero: 'o', variacao: 11.76 }).texto,

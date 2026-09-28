@@ -16,7 +16,7 @@ export function alerta({ nivel, texto }) {
 
 export function barraProgresso({ largura, excedido = false, rotulo }) {
   return html`<div class="progresso${excedido ? ' progresso--excedido' : ''}" role="progressbar" aria-label="${rotulo}"
-    aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(largura)}"><div class="progresso__barra" style="width: ${largura.toFixed(1)}%"></div></div>`;
+    aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(largura)}"><div class="progresso__barra" data-largura="${largura.toFixed(1)}"></div></div>`;
 }
 
 // ---------- Campo de valor em Kz ----------

@@ -96,7 +96,7 @@ function ondeGastou(r) {
     ${r.ondeGastou.length
       ? html`<ul class="onde">${r.ondeGastou.map((l) => html`<li>
           <div class="onde__linha"><span>${l.estabelecimento}</span><strong>${formatarKz(l.total)}</strong></div>
-          <div class="onde__barra" aria-hidden="true"><span style="width: ${l.proporcao.toFixed(1)}%"></span></div>
+          <div class="onde__barra" aria-hidden="true"><span data-largura="${l.proporcao.toFixed(1)}"></span></div>
         </li>`)}</ul>`
       : html`<p class="nota">Ainda não há compras registadas.</p>`}
   </section>`;

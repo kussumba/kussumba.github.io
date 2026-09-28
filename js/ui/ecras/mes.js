@@ -2,11 +2,13 @@
 
 import { html, montar } from '../html.js';
 import { icone } from '../icones.js';
-import { alerta, barraProgresso, pedirKz, mostrarAviso } from '../componentes.js';
+import { alerta, barraProgresso, pedirKz, mostrarAviso, confirmar } from '../componentes.js';
 import { formatarKz, formatarNumero } from '../../nucleo/formatos.js';
-import { formatarDataCurta } from '../../nucleo/datas.js';
+import { formatarDataCurta, formatarDataLonga } from '../../nucleo/datas.js';
 import { painelMes } from '../../servicos/relatorio.js';
 import { alterarPlafond } from '../../servicos/meses.js';
+import { ErroKussumba } from '../../servicos/comum.js';
+import { pareceEngano } from '../../nucleo/alertas.js';
 
 export const titulo = 'Mês';
 export const separador = 'mes';
@@ -142,14 +144,29 @@ export async function desenhar(raiz, { contexto, redesenhar }) {
     ${botaoCompras(painel)}
     ${seccaoPrevisao(painel)}
     ${seccaoRitmo(painel)}
-    ${seccaoCompras(painel)}`);
+    ${seccaoCompras(painel)}
+    <p class="mes__copia">
+      <a class="ligacao" href="#/dados">Cópia de segurança</a>
+      <span class="nota">${contexto.utilizador.ultimaCopiaEm
+        ? `Última cópia: ${formatarDataLonga(contexto.utilizador.ultimaCopiaEm.slice(0, 10))}.`
+        : 'Os teus dados só existem neste telefone. Guarda uma cópia de vez em quando.'}</span>
+    </p>`);
 
   raiz.querySelector('[data-accao="plafond"]').addEventListener('click', async () => {
     const novo = await pedirKz({
       titulo: 'Plafond do mês',
       rotulo: `Quanto tens para as compras de ${painel.rotulo}?`,
       valor: painel.orcamento.plafond,
-      guardar: (valor) => alterarPlafond(painel.mes.id, valor),
+      guardar: async (valor) => {
+        // Um plafond cinco vezes maior ou menor do que o actual parece engano de digitação (SEC-007).
+        if (pareceEngano(valor, painel.orcamento.plafond) && !(await confirmar({
+          titulo: 'Confirmas este plafond?',
+          texto: `Passa de ${formatarKz(painel.orcamento.plafond)} para ${formatarKz(valor)}.`,
+          confirmar: 'Sim, está certo',
+          cancelar: 'Corrigir',
+        }))) throw new ErroKussumba('Corrige o valor do plafond.');
+        await alterarPlafond(painel.mes.id, valor);
+      },
     });
     if (novo !== null) {
       mostrarAviso('Plafond actualizado.');

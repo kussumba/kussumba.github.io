@@ -24,9 +24,14 @@ export function navegar(caminho) {
   else location.hash = destino;
 }
 
+/** Lê "#/tela/parametro". Devolve null se o endereço tiver uma codificação inválida (SEC-005). */
 function lerEndereco() {
   const [nome = 'mes', ...parametros] = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
-  return { nome, parametros: parametros.map(decodeURIComponent) };
+  try {
+    return { nome, parametros: parametros.map(decodeURIComponent) };
+  } catch {
+    return null;
+  }
 }
 
 /** Decide para onde ir quando a tela pedida ainda não faz sentido. */
@@ -50,7 +55,13 @@ function desenharNavegacao(activo) {
 /** Volta a desenhar a tela actual (depois de gravar alguma coisa, por exemplo). */
 export async function redesenhar() {
   const pedido = ++pedidoActual;
-  let { nome, parametros } = lerEndereco();
+  const endereco = lerEndereco();
+  if (!endereco) {
+    // Uma ligação estragada não pode deixar a aplicação em branco: volta ao Mês.
+    location.replace('#/mes');
+    return;
+  }
+  let { nome, parametros } = endereco;
   if (!telas[nome]) nome = 'mes';
   const tela = telas[nome];
 

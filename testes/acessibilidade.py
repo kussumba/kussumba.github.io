@@ -5,6 +5,7 @@ Precisa de internet na primeira vez, para descarregar o axe-core (fica guardado 
 O axe é injectado só neste teste; a aplicação não carrega nada de fora.
 """
 import datetime
+import hashlib
 import pathlib
 import sys
 import tempfile
@@ -16,8 +17,10 @@ from playwright.sync_api import sync_playwright, expect
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 from servir import criar_servidor  # noqa: E402
 
-AXE_URL = "https://cdn.jsdelivr.net/npm/axe-core@4/axe.min.js"
-AXE = pathlib.Path(tempfile.gettempdir()) / "kussumba-axe.min.js"
+# Versão fixa e impressão digital conhecida (auditoria SEC-012): um ficheiro diferente é recusado.
+AXE_URL = "https://cdn.jsdelivr.net/npm/axe-core@4.13.0/axe.min.js"
+AXE_SHA256 = "c24f097bd2f451d4f933e8bc7d8d539f8672a2ebcb5cc9f9f3eec8ca9470a0c1"
+AXE = pathlib.Path(tempfile.gettempdir()) / "kussumba-axe-4.13.0.min.js"
 
 SEMEAR = """
 async () => {
@@ -40,8 +43,14 @@ async () => {
 
 
 def main():
-    if not AXE.exists():
+    def impressao(caminho):
+        return hashlib.sha256(caminho.read_bytes()).hexdigest() if caminho.exists() else None
+
+    if impressao(AXE) != AXE_SHA256:
         urllib.request.urlretrieve(AXE_URL, AXE)
+    if impressao(AXE) != AXE_SHA256:
+        AXE.unlink(missing_ok=True)
+        sys.exit("O axe-core descarregado não corresponde à versão esperada. Auditoria cancelada.")
     axe = AXE.read_text(encoding="utf-8")
 
     servidor = criar_servidor(0)

@@ -10,11 +10,11 @@ import {
 import { formatarKz, formatarKzComSinal, formatarNumero, formatarPercentagem, lerKz } from '../../nucleo/formatos.js';
 import { formatarQuantidade, formatarPrecoUnitario } from '../../nucleo/unidades.js';
 import { dataISO } from '../../nucleo/datas.js';
-import { alertaPreco } from '../../nucleo/alertas.js';
+import { alertaPreco, motivoPrecoEstranho, pareceEngano } from '../../nucleo/alertas.js';
 import { normalizarNome } from '../../dados/catalogo-inicial.js';
 import {
   compraEmAndamento, iniciarCompra, detalheCompra, registarArtigo, anularArtigo, concluirCompra,
-  cancelarCompra, simularArtigo, produtoParaCompra, estabelecimentosRecentes,
+  cancelarCompra, simularArtigo, produtoParaCompra, estabelecimentosRecentes, intervaloDataCompra,
 } from '../../servicos/compras.js';
 import { obterLista } from '../../servicos/lista.js';
 import { listarProdutos } from '../../servicos/produtos.js';
@@ -46,6 +46,7 @@ function artigos(n) {
 
 async function desenharInicio(raiz, { contexto, redesenhar }) {
   const [lojas, { resumo }] = await Promise.all([estabelecimentosRecentes(), obterLista(contexto.mesAberto.id)]);
+  const datas = intervaloDataCompra(contexto.mesAberto);
   montar(raiz, html`
     <header class="cabecalho"><h1 tabindex="-1">Nova ida às compras</h1></header>
     <form class="comprar-inicio" novalidate>
@@ -61,7 +62,8 @@ async function desenharInicio(raiz, { contexto, redesenhar }) {
       </div>
       <div class="campo">
         <label class="campo__rotulo" for="data">Data</label>
-        <input class="campo-texto" id="data" type="date" value="${dataISO()}">
+        <input class="campo-texto" id="data" type="date" value="${dataISO()}" min="${datas.min}" max="${datas.max}">
+        <p class="campo__erro" id="data-erro" hidden></p>
       </div>
       <div class="cartao comprar-inicio__lista">
         ${resumo.pendentes
@@ -79,6 +81,7 @@ async function desenharInicio(raiz, { contexto, redesenhar }) {
     mostrarErroCampo(loja, null);
   });
   loja.addEventListener('input', () => mostrarErroCampo(loja, null));
+  raiz.querySelector('#data').addEventListener('change', (e) => mostrarErroCampo(e.target, null));
 
   const form = raiz.querySelector('form');
   form.addEventListener('submit', (e) => {
@@ -91,6 +94,12 @@ async function desenharInicio(raiz, { contexto, redesenhar }) {
         if (erro instanceof ErroKussumba && /onde/i.test(erro.message)) {
           mostrarErroCampo(loja, erro.message);
           loja.focus();
+          return;
+        }
+        if (erro instanceof ErroKussumba && /data/i.test(erro.message)) {
+          const campoData = raiz.querySelector('#data');
+          mostrarErroCampo(campoData, erro.message);
+          campoData.focus();
           return;
         }
         throw erro;
@@ -278,9 +287,28 @@ async function desenharRegisto(raiz, { redesenhar, navegar }, compraId) {
     actualizarCartao();
   }
 
+  /** Pede confirmação quando o preço parece engano de digitação (SEC-007). Devolve true se pode gravar. */
+  async function precoConfirmado(nome, pago, contasDoArtigo, anterior, previsto) {
+    const motivo = motivoPrecoEstranho({
+      precoReal: pago,
+      plafond: d.mes.plafond,
+      precoUnitarioBase: contasDoArtigo.precoUnitarioBase,
+      anteriorUnitarioBase: anterior?.precoUnitarioBase ?? null,
+      previsto,
+    });
+    if (!motivo) return true;
+    return confirmar({
+      titulo: 'Confirmas este preço?',
+      texto: `${formatarKz(pago)} por ${nome} ${motivo}. Confirma que não é engano de digitação.`,
+      confirmar: 'Sim, está certo',
+      cancelar: 'Corrigir',
+    });
+  }
+
   async function guardar() {
     const c = contas();
     if (!c.pago) return;
+    if (!(await precoConfirmado(actual.nome, c.pago, c, actual.anterior, c.previsto))) return;
     await registarArtigo({
       compraId,
       itemListaId: estado.extra ? null : actual.id,
@@ -305,9 +333,19 @@ async function desenharRegisto(raiz, { redesenhar, navegar }, compraId) {
       <div class="folha__accoes"><button type="button" class="botao botao--primario" data-feito>Feito</button></div>`,
     { rotulo: 'Quantidade comprada' });
     const seletor = ligarSeletorQuantidade(folha.querySelector('[data-quantidade]'));
-    folha.querySelector('[data-feito]').addEventListener('click', () => {
+    folha.querySelector('[data-feito]').addEventListener('click', async () => {
       folha.querySelector('input').dispatchEvent(new Event('change'));
-      estado.quantidade = seletor.valor();
+      const nova = seletor.valor();
+      if (!estado.extra && pareceEngano(nova, actual.quantidadePrevista)) {
+        const ok = await confirmar({
+          titulo: 'Confirmas esta quantidade?',
+          texto: `Planeaste ${formatarQuantidade(actual.quantidadePrevista, actual.unidade, actual.unidadeTexto)} e indicaste ${formatarQuantidade(nova, actual.unidade, actual.unidadeTexto)}.`,
+          confirmar: 'Sim, está certo',
+          cancelar: 'Corrigir',
+        });
+        if (!ok) return;
+      }
+      estado.quantidade = nova;
       folha.close();
       redesenhar();
     });
@@ -334,13 +372,17 @@ async function desenharRegisto(raiz, { redesenhar, navegar }, compraId) {
     folha.querySelector('form').addEventListener('submit', (e) => {
       e.preventDefault();
       executar(folha.querySelector('button[type="submit"]'), async () => {
+        const pago = lerCampoKz(preco);
+        const quantidade = seletor.valor();
+        const contasCorrigidas = simularArtigo({ ...item, quantidade, precoReal: pago, anterior: item.anterior });
+        if (!(await precoConfirmado(item.nome, pago, contasCorrigidas, item.anterior, contasCorrigidas.previsto))) return;
         try {
           await registarArtigo({
             compraId,
             itemListaId: item.itemListaId,
             produtoId: item.itemListaId ? null : item.produtoId,
-            quantidade: seletor.valor(),
-            precoReal: lerCampoKz(preco),
+            quantidade,
+            precoReal: pago,
           });
         } catch (erro) {
           if (erro instanceof ErroKussumba && /preço/i.test(erro.message)) {

@@ -1,0 +1,3 @@
+# Dependências dos testes automáticos pela interface (a aplicação não tem dependências).
+# Instalar com:  pip install -r testes/requisitos.txt
+playwright==1.63.0

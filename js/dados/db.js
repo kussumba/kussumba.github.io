@@ -14,6 +14,9 @@ import { PRODUTOS_INICIAIS, normalizarNome } from './catalogo-inicial.js';
 
 export const NOME_BD = 'kussumba';
 
+/** Todas as colecções, pela ordem em que se exportam e repõem. */
+export const COLECOES = ['utilizador', 'meses', 'produtos', 'itensLista', 'compras', 'itensCompra', 'historicoPrecos'];
+
 /** O navegador não deixa guardar dados (modo anónimo, navegador dentro de outra aplicação, definições). */
 export class ErroArmazenamento extends Error {
   constructor() {
@@ -143,6 +146,7 @@ export async function transaccao(colecoes, modo, trabalho) {
       porIndice: (colecao, indice, valor) => pedidoParaPromessa(tx.objectStore(colecao).index(indice).getAll(valor)),
       guardar: (colecao, registo) => pedidoParaPromessa(tx.objectStore(colecao).put(registo)),
       apagar: (colecao, chave) => pedidoParaPromessa(tx.objectStore(colecao).delete(chave)),
+      limpar: (colecao) => pedidoParaPromessa(tx.objectStore(colecao).clear()),
     };
 
     let trabalhoTerminado = false;

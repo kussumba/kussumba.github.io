@@ -4,8 +4,9 @@ import { html, montar } from '../html.js';
 import { icone, iconeProduto } from '../icones.js';
 import {
   alerta, abrirFolha, campoKz, ligarCamposKz, lerCampoKz, mostrarErroCampo,
-  seletorQuantidade, ligarSeletorQuantidade, executar, mostrarAviso, tratarErro,
+  seletorQuantidade, ligarSeletorQuantidade, executar, mostrarAviso, tratarErro, confirmar,
 } from '../componentes.js';
+import { pareceEngano } from '../../nucleo/alertas.js';
 import { formatarKz, formatarPercentagem, formatarNumero } from '../../nucleo/formatos.js';
 import { formatarQuantidade, formatarPrecoUnitario, paraBase } from '../../nucleo/unidades.js';
 import { precoTotal, precoUnitario } from '../../nucleo/calculos.js';
@@ -155,8 +156,16 @@ async function abrirEdicao(item, redesenhar) {
   folha.querySelector('form').addEventListener('submit', (e) => {
     e.preventDefault();
     executar(folha.querySelector('button[type="submit"]'), async () => {
+      const total = lerCampoKz(campoPreco) || null;
+      const porBase = total ? precoUnitario(total, paraBase(quantidade, item.unidade)) : null;
+      if (preco && preco.unidadeBase === item.unidadeBase && pareceEngano(porBase, preco.ultimo.precoUnitarioBase) && !(await confirmar({
+        titulo: 'Confirmas este preço?',
+        texto: `Dá ${formatarPrecoUnitario(porBase, item.unidadeBase)}; na última compra pagaste ${formatarPrecoUnitario(preco.ultimo.precoUnitarioBase, item.unidadeBase)}.`,
+        confirmar: 'Sim, está certo',
+        cancelar: 'Corrigir',
+      }))) return;
       try {
-        await actualizarItem(item.id, { quantidade, precoTotalPrevisto: lerCampoKz(campoPreco) || null });
+        await actualizarItem(item.id, { quantidade, precoTotalPrevisto: total });
       } catch (erro) {
         if (erro instanceof ErroKussumba && /preço/i.test(erro.message)) {
           mostrarErroCampo(campoPreco, erro.message);

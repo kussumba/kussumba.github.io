@@ -4,14 +4,14 @@ import { html, montar } from '../html.js';
 import { icone } from '../icones.js';
 import {
   alerta, abrirFolha, campoKz, ligarCamposKz, lerCampoKz, mostrarErroCampo,
-  seletorQuantidade, ligarSeletorQuantidade, executar, mostrarAviso,
+  seletorQuantidade, ligarSeletorQuantidade, executar, mostrarAviso, confirmar,
 } from '../componentes.js';
 import { formatarKz, formatarKzComSinal, formatarNumero, formatarPercentagem } from '../../nucleo/formatos.js';
 import { formatarQuantidade, formatarPrecoUnitario } from '../../nucleo/unidades.js';
 import { formatarDataLonga } from '../../nucleo/datas.js';
-import { alertaFimCompra } from '../../nucleo/alertas.js';
+import { alertaFimCompra, motivoPrecoEstranho } from '../../nucleo/alertas.js';
 import { ROTULOS } from '../../nucleo/estados.js';
-import { detalheCompra, corrigirArtigo } from '../../servicos/compras.js';
+import { detalheCompra, corrigirArtigo, simularArtigo } from '../../servicos/compras.js';
 import { ErroKussumba } from '../../servicos/comum.js';
 
 export const titulo = 'Compra';
@@ -54,7 +54,7 @@ function linhaArtigo(i, editavel) {
     : html`<li><div class="linha">${conteudo}</div></li>`;
 }
 
-function abrirCorreccao(item, redesenhar) {
+function abrirCorreccao(item, plafond, redesenhar) {
   const folha = abrirFolha(html`
     <form novalidate>
       <div class="folha__cabecalho">
@@ -72,8 +72,24 @@ function abrirCorreccao(item, redesenhar) {
   folha.querySelector('form').addEventListener('submit', (e) => {
     e.preventDefault();
     executar(folha.querySelector('button[type="submit"]'), async () => {
+      const pago = lerCampoKz(preco);
+      const quantidade = seletor.valor();
+      const contas = simularArtigo({ ...item, quantidade, precoReal: pago, anterior: item.anterior });
+      const motivo = motivoPrecoEstranho({
+        precoReal: pago,
+        plafond,
+        precoUnitarioBase: contas.precoUnitarioBase,
+        anteriorUnitarioBase: item.anterior?.precoUnitarioBase ?? null,
+        previsto: contas.previsto,
+      });
+      if (motivo && !(await confirmar({
+        titulo: 'Confirmas este preço?',
+        texto: `${formatarKz(pago)} por ${item.nome} ${motivo}. Confirma que não é engano de digitação.`,
+        confirmar: 'Sim, está certo',
+        cancelar: 'Corrigir',
+      }))) return;
       try {
-        await corrigirArtigo(item.id, { quantidade: seletor.valor(), precoReal: lerCampoKz(preco) });
+        await corrigirArtigo(item.id, { quantidade, precoReal: pago });
       } catch (erro) {
         if (erro instanceof ErroKussumba && /preço/i.test(erro.message)) {
           mostrarErroCampo(preco, erro.message);
@@ -115,6 +131,6 @@ export async function desenhar(raiz, { parametros, redesenhar }) {
 
   raiz.addEventListener('click', (e) => {
     const linha = e.target.closest('[data-item]');
-    if (linha) abrirCorreccao(d.itens.find((i) => i.id === linha.dataset.item), redesenhar);
+    if (linha) abrirCorreccao(d.itens.find((i) => i.id === linha.dataset.item), d.mes.plafond, redesenhar);
   });
 }

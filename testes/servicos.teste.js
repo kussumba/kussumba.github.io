@@ -260,6 +260,23 @@ teste('serviços: concluir compra guarda os totais (§23)', async () => {
   igual(await Compras.compraEmAndamento(), null);
 });
 
+teste('serviços: a data da compra fica entre o mês anterior e hoje (auditoria SEC-004)', async () => {
+  const mes = await comecar(2026, 9, 18);
+  const intervalo = Compras.intervaloDataCompra(mes, new Date(2026, 8, 18));
+  igual(intervalo.min, '2026-08-01');
+  igual(intervalo.max, '2026-09-18');
+  await falha(() => Compras.iniciarCompra({ estabelecimento: 'Erro', data: '2062-09-02' }), 'data da compra');
+  await falha(() => Compras.iniciarCompra({ estabelecimento: 'Erro', data: '2026-09-19' }), 'data da compra');
+  await falha(() => Compras.iniciarCompra({ estabelecimento: 'Erro', data: '2026-07-31' }), 'data da compra');
+  const c = await Compras.iniciarCompra({ estabelecimento: 'Mês anterior', data: '2026-08-01' });
+  igual(c.data, '2026-08-01');
+  await Compras.cancelarCompra(c.id);
+  const hoje = await Compras.iniciarCompra({ estabelecimento: 'Hoje', data: '2026-09-18' });
+  igual(hoje.data, '2026-09-18');
+  // Janeiro: o mês anterior é Dezembro do ano anterior.
+  igual(Compras.intervaloDataCompra({ ano: 2027, mes: 1 }, new Date(2027, 0, 3)).min, '2026-12-01');
+});
+
 teste('serviços: um artigo comprado não pode ser comprado outra vez noutra ida', async () => {
   const mes = await comecar(2026, 9, 2);
   const arroz = await Lista.adicionarProduto(mes.id, 'cat-arroz', 25);
@@ -452,7 +469,7 @@ teste('serviços: correcção de um preço mal escrito mantém o histórico coer
 });
 
 teste('serviços: preços em g e kg comparam-se; kg e pacote não (§44)', async () => {
-  const mes = await comecar(2026, 9, 2);
+  const mes = await comecar(2026, 9, 5);
   const c1 = await Compras.iniciarCompra({ estabelecimento: 'A', data: '2026-09-02' });
   await Compras.registarArtigo({ compraId: c1.id, produtoId: 'cat-sal', quantidade: 1, precoReal: 400 });
   await Compras.concluirCompra(c1.id);

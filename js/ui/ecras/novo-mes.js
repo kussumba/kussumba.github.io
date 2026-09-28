@@ -2,7 +2,8 @@
 
 import { html, montar } from '../html.js';
 import { icone } from '../icones.js';
-import { campoKz, ligarCamposKz, lerCampoKz, mostrarErroCampo, executar, mostrarAviso } from '../componentes.js';
+import { campoKz, ligarCamposKz, lerCampoKz, mostrarErroCampo, executar, mostrarAviso, confirmar } from '../componentes.js';
+import { pareceEngano } from '../../nucleo/alertas.js';
 import { formatarDigitacaoKz, formatarKz, formatarNumero, formatarPercentagem } from '../../nucleo/formatos.js';
 import { formatarQuantidade } from '../../nucleo/unidades.js';
 import { prepararNovoMes, criarMes } from '../../servicos/meses.js';
@@ -126,9 +127,16 @@ export async function desenhar(raiz, { navegar }) {
       return;
     }
     executar(form.querySelector('button[type="submit"]'), async () => {
+      const plafond = lerCampoKz(campoPlafond);
+      if (pareceEngano(plafond, anterior.plafond) && !(await confirmar({
+        titulo: 'Confirmas este plafond?',
+        texto: `Em ${anterior.nome} era ${formatarKz(anterior.plafond)}; indicaste ${formatarKz(plafond)}.`,
+        confirmar: 'Sim, está certo',
+        cancelar: 'Corrigir',
+      }))) return;
       try {
         await criarMes({
-          plafond: lerCampoKz(campoPlafond),
+          plafond,
           copiarDe: copiar ? anterior.id : null,
           itensSeleccionados: copiar ? seleccionados : null,
         });

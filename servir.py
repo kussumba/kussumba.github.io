@@ -5,11 +5,16 @@ Uso:  python servir.py        (abre em http://localhost:8080)
 
 O servidor de testes do Python, no Windows, pode enviar ficheiros .js com o tipo errado,
 o que impede o navegador de os carregar. Este script corrige os tipos.
+
+Só aceita ligações deste computador e só serve os ficheiros da aplicação e dos testes:
+nada de listagens de pastas nem de ficheiros escondidos como o .git (auditoria SEC-013).
 """
 import functools
 import http.server
 import pathlib
+import posixpath
 import sys
+import urllib.parse
 
 PASTA = pathlib.Path(__file__).resolve().parent
 
@@ -25,12 +30,39 @@ TIPOS = {
     ".woff2": "font/woff2",
 }
 
+FICHEIROS_NA_RAIZ = {"", "index.html", "manifest.webmanifest", "sw.js"}
+PASTAS_PERMITIDAS = ("css/", "js/", "fontes/", "icones/", "testes/")
+
+
+def caminho_permitido(caminho_pedido):
+    """Decide se um caminho do endereço pode ser servido."""
+    caminho = urllib.parse.unquote(urllib.parse.urlsplit(caminho_pedido).path)
+    normalizado = posixpath.normpath("/" + caminho).lstrip("/")
+    if normalizado == ".":
+        normalizado = ""
+    if any(parte.startswith(".") for parte in normalizado.split("/") if parte):
+        return False
+    return normalizado in FICHEIROS_NA_RAIZ or normalizado.startswith(PASTAS_PERMITIDAS) or normalizado + "/" in PASTAS_PERMITIDAS
+
 
 class Pedido(http.server.SimpleHTTPRequestHandler):
     extensions_map = {**http.server.SimpleHTTPRequestHandler.extensions_map, **TIPOS}
 
+    def send_head(self):
+        if not caminho_permitido(self.path):
+            self.send_error(404, "Não encontrado")
+            return None
+        return super().send_head()
+
+    def list_directory(self, path):
+        self.send_error(404, "Não encontrado")
+        return None
+
     def end_headers(self):
         self.send_header("Cache-Control", "no-cache")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("X-Frame-Options", "DENY")
         super().end_headers()
 
     def log_message(self, formato, *args):

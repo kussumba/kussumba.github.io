@@ -5,7 +5,7 @@ import { transaccao } from '../dados/db.js';
 import { novoId } from '../dados/ids.js';
 import { precoTotal, precoUnitario, variacaoPercentual, diferenca, saldo } from '../nucleo/calculos.js';
 import { unidadeBase, paraBase } from '../nucleo/unidades.js';
-import { carimbo, dataISO, dataValida } from '../nucleo/datas.js';
+import { agora, carimbo, dataISO, dataValida, formatarDataLonga, idMes, mesAnterior } from '../nucleo/datas.js';
 import { normalizarNome } from '../dados/catalogo-inicial.js';
 import { ErroKussumba, exigirMesAberto, validarKz, validarQuantidade, validarTexto } from './comum.js';
 import { criarRegistoHistorico, idHistorico, ultimoComparavel, historicoDoProduto } from './precos.js';
@@ -73,12 +73,25 @@ async function mesAberto(t) {
   return abertos[0];
 }
 
+/**
+ * Datas aceites para uma compra do mês aberto (SEC-004): do primeiro dia do mês anterior até hoje.
+ * Uma data futura passaria a ser o "último preço" para sempre; uma data muito antiga não pertence a este orçamento.
+ */
+export function intervaloDataCompra(mes, hoje = agora()) {
+  const anterior = mesAnterior(mes);
+  return { min: `${idMes(anterior.ano, anterior.mes)}-01`, max: dataISO(hoje) };
+}
+
 /** Começa uma ida às compras no mês aberto. Só pode haver uma compra em andamento de cada vez. */
 export async function iniciarCompra({ estabelecimento, data = dataISO() }) {
   const nome = validarTexto(estabelecimento, 'Escreve onde vais fazer as compras.', 60);
   if (!dataValida(data)) throw new ErroKussumba('Escolhe uma data válida.');
   return transaccao(['meses', 'compras'], 'readwrite', async (t) => {
     const mes = await mesAberto(t);
+    const { min, max } = intervaloDataCompra(mes);
+    if (data < min || data > max) {
+      throw new ErroKussumba(`A data da compra tem de estar entre ${formatarDataLonga(min)} e hoje.`);
+    }
     const compras = await t.porIndice('compras', 'mesId', mes.id);
     const emCurso = compras.find((c) => c.estado === 'em_andamento');
     if (emCurso) throw new ErroKussumba(`Já tens uma compra em andamento em ${emCurso.estabelecimento}.`);

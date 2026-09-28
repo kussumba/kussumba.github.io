@@ -4,7 +4,7 @@
 // Ao publicar uma versão nova, mudar VERSAO. Os telefones descarregam os ficheiros novos
 // em segundo plano e passam a usá-los na abertura seguinte.
 
-const VERSAO = 'kussumba-2026-09-28-5';
+const VERSAO = 'kussumba-2026-09-28-6';
 
 const FICHEIROS = [
   './',
@@ -31,18 +31,21 @@ const FICHEIROS = [
   './js/dados/ids.js',
   './js/servicos/comum.js',
   './js/servicos/compras.js',
+  './js/servicos/copia.js',
   './js/servicos/lista.js',
   './js/servicos/meses.js',
   './js/servicos/precos.js',
   './js/servicos/produtos.js',
   './js/servicos/relatorio.js',
   './js/ui/componentes.js',
+  './js/ui/copia.js',
   './js/ui/html.js',
   './js/ui/icones.js',
   './js/ui/router.js',
   './js/ui/ecras/boas-vindas.js',
   './js/ui/ecras/catalogo.js',
   './js/ui/ecras/compra.js',
+  './js/ui/ecras/dados.js',
   './js/ui/ecras/comprar.js',
   './js/ui/ecras/lista.js',
   './js/ui/ecras/mes.js',
@@ -66,16 +69,22 @@ self.addEventListener('activate', (evento) => {
 });
 
 // Primeiro a cópia guardada (abre depressa e sem rede); a rede só para o que não estiver guardado.
+// Lê só da cache desta versão, nunca de caches de outras aplicações do mesmo domínio (SEC-001).
+// Se a cópia tiver desaparecido, vai à rede em vez de falhar (SEC-006).
+async function responder(pedido) {
+  const cache = await caches.open(VERSAO);
+  const guardado = await cache.match(pedido, { ignoreSearch: true });
+  if (guardado) return guardado;
+  if (pedido.mode === 'navigate') {
+    const pagina = await cache.match('./index.html');
+    if (pagina) return pagina;
+  }
+  return fetch(pedido);
+}
+
 self.addEventListener('fetch', (evento) => {
   const pedido = evento.request;
   if (pedido.method !== 'GET' || new URL(pedido.url).origin !== self.location.origin) return;
   if (new URL(pedido.url).pathname.includes('/testes/')) return;
-
-  evento.respondWith(
-    caches.match(pedido, { ignoreSearch: true }).then((guardado) => {
-      if (guardado) return guardado;
-      if (pedido.mode === 'navigate') return caches.match('./index.html');
-      return fetch(pedido);
-    }),
-  );
+  evento.respondWith(responder(pedido));
 });

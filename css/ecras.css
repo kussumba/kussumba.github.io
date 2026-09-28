@@ -926,3 +926,36 @@
 .novo-mes__criar {
   margin-top: auto;
 }
+
+/* ---------- Cópia de segurança ---------- */
+
+.copia {
+  display: grid;
+  gap: 12px;
+}
+
+.copia h2 {
+  font-size: var(--t-destaque);
+  font-weight: 700;
+}
+
+.copia__ultima {
+  font-weight: 600;
+}
+
+.copia__escolher {
+  cursor: pointer;
+}
+
+.mes__copia {
+  display: grid;
+  gap: 2px;
+  margin-top: 28px;
+}
+
+.entrada__repor {
+  justify-content: center;
+  margin-top: 12px;
+  text-align: center;
+  cursor: pointer;
+}
