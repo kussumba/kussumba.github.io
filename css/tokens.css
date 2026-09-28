@@ -1,0 +1,58 @@
+/* Identidade visual da KUSSUMBA. Cores retiradas das telas de referência do projecto. */
+
+@font-face {
+  font-family: "DM Sans";
+  src: url("../fontes/dm-sans-latin-wght-normal.woff2") format("woff2");
+  font-weight: 100 1000;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Superfícies */
+  --fundo: #F6F3EE;
+  --superficie: #FFFFFF;
+  --superficie-2: #F6F3EE;
+  --borda: #E7E3DC;
+  --borda-forte: #D9D3C8;
+  --tracejado: #9DB5A9;
+  --marcador: #858B85; /* texto de exemplo em campos vazios: 3:1 no mínimo */
+  --trilho: #ECE7DE;
+
+  /* Texto */
+  --tinta: #1F2421;
+  --tinta-2: #5E6660;
+
+  /* Marca */
+  --verde: #1E6B52;
+  --verde-premido: #185A45;
+  --verde-suave: #E1EFE8;
+  --verde-tinta: #154D3B;
+
+  /* Estados */
+  --alerta-fundo: #FDF0E1;
+  --alerta-borda: #F2D8B9;
+  --alerta-tinta: #7A3E06;
+  --subida: #8A3B12;
+  --descida: #1D4E89;
+
+  /* Ícones de produto */
+  --icone-fundo: #F3E7D3;
+  --icone-traco: #7A4A12;
+
+  /* Forma */
+  --raio: 16px;
+  --raio-pequeno: 12px;
+  --margem: 20px;
+  --toque: 48px;
+
+  /* Tipografia */
+  --fonte: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --t-meta: 0.875rem;   /* 14px */
+  --t-corpo: 1rem;      /* 16px */
+  --t-destaque: 1.0625rem; /* 17px */
+  --t-titulo: 1.875rem; /* 30px */
+  --t-valor: 2.625rem;  /* 42px */
+
+  --altura-nav: 72px;
+}
