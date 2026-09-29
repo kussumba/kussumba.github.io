@@ -1,9 +1,8 @@
 """Publica a KUSSUMBA no GitHub Pages, no ramo gh-pages.
 
-Uso:  python publicar.py [--remoto NOME] ["linha extra para a mensagem do registo" ...]
+Uso:  python publicar.py ["linha extra para a mensagem do registo" ...]
 
---remoto  repositório onde publicar: "origin" (o endereço oficial, por omissão)
-          ou "antigo" (o endereço anterior, que só encaminha para o oficial).
+Publica no repositório "origin" (kussumba/kussumba.github.io), servido em https://kussumba.github.io/.
 
 Publica só os ficheiros da aplicação, tirados do último registo (commit) do ramo main.
 Os testes, as ferramentas e a documentação não são publicados (auditoria SEC-010).
@@ -23,10 +22,8 @@ import tempfile
 PASTA = pathlib.Path(__file__).resolve().parent
 PUBLICAR = ("index.html", "manifest.webmanifest", "sw.js", "css/", "fontes/", "icones/", "js/")
 RAMO = "gh-pages"
-ENDERECOS = {
-    "origin": "https://kussumba.github.io/",
-    "antigo": "https://ladislaulucala-sys.github.io/kussumba/",
-}
+REMOTO = "origin"
+ENDERECO = "https://kussumba.github.io/"
 
 
 def git(*argumentos, entrada=None, ambiente=None, obrigatorio=True):
@@ -45,10 +42,9 @@ def versao_em(referencia):
 
 def main():
     leitor = argparse.ArgumentParser(description="Publica a KUSSUMBA no GitHub Pages.")
-    leitor.add_argument("--remoto", default="origin", choices=sorted(ENDERECOS))
     leitor.add_argument("notas", nargs="*", help="linhas extra para a mensagem do registo")
     opcoes = leitor.parse_args()
-    remoto = opcoes.remoto
+    remoto = REMOTO
 
     if git("status", "--porcelain"):
         sys.exit("Há alterações por registar. Faz primeiro o registo (commit) e o envio do ramo main.")
@@ -84,7 +80,7 @@ def main():
     # Envia o registo directamente para o gh-pages do repositório escolhido; o ramo local não é usado.
     git("push", remoto, f"{registo}:refs/heads/{RAMO}")
     git("fetch", remoto)
-    print(f"Publicada a versão {nova}. Daqui a um ou dois minutos estará em {ENDERECOS[remoto]}")
+    print(f"Publicada a versão {nova}. Daqui a um ou dois minutos estará em {ENDERECO}")
 
 
 if __name__ == "__main__":
